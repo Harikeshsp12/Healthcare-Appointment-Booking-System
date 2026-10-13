@@ -1,0 +1,807 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Healthcare Appointment Booking System",
+    "description": "API for patients to book appointments with doctors with working hours validation and double-booking prevention.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/doctors/": {
+      "get": {
+        "tags": [
+          "doctors"
+        ],
+        "summary": "List Doctors",
+        "description": "List all registered doctors.",
+        "operationId": "list_doctors",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DoctorResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Doctors"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "doctors"
+        ],
+        "summary": "Add Doctor",
+        "description": "Add a new doctor with their working hours.",
+        "operationId": "add_doctor",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DoctorCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/doctors/{id}": {
+      "get": {
+        "tags": [
+          "doctors"
+        ],
+        "summary": "Get Doctor By Id",
+        "description": "Get doctor details by ID.",
+        "operationId": "get_doctor_by_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/doctors/{id}/availability": {
+      "get": {
+        "tags": [
+          "doctors"
+        ],
+        "summary": "Get Doctor Availability",
+        "description": "Get all 1-hour time slots and their availability for a specific doctor on a chosen date.",
+        "operationId": "get_doctor_availability",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "query_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Date in YYYY-MM-DD format, defaults to today",
+              "title": "Query Date"
+            },
+            "description": "Date in YYYY-MM-DD format, defaults to today"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorAvailabilityResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/appointments/": {
+      "post": {
+        "tags": [
+          "appointments"
+        ],
+        "summary": "Book Appointment",
+        "description": "Book an appointment with a doctor.\nEnforces:\n1. Doctor must exist.\n2. Appointment slot must be within the doctor's working hours.\n3. Doctor cannot be double-booked for the same time slot.",
+        "operationId": "book_appointment",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointmentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "appointments"
+        ],
+        "summary": "List Appointments",
+        "description": "List all appointments with optional filters.",
+        "operationId": "list_appointments",
+        "parameters": [
+          {
+            "name": "doctor_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by doctor ID",
+              "title": "Doctor Id"
+            },
+            "description": "Filter by doctor ID"
+          },
+          {
+            "name": "patient_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by patient name",
+              "title": "Patient Name"
+            },
+            "description": "Filter by patient name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AppointmentResponse"
+                  },
+                  "title": "Response List Appointments"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/appointments/{id}": {
+      "delete": {
+        "tags": [
+          "appointments"
+        ],
+        "summary": "Cancel Appointment",
+        "description": "Cancel an existing appointment by ID.",
+        "operationId": "cancel_appointment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "appointments"
+        ],
+        "summary": "Get Appointment By Id",
+        "description": "Get appointment by ID.",
+        "operationId": "get_appointment_by_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stats": {
+      "get": {
+        "tags": [
+          "appointments",
+          "analytics"
+        ],
+        "summary": "Get Dashboard Stats",
+        "description": "Get dashboard analytics for doctors and appointments.",
+        "operationId": "get_dashboard_stats",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardStatsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health check and service status",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AppointmentCreate": {
+        "properties": {
+          "doctor_id": {
+            "type": "integer",
+            "title": "Doctor Id",
+            "description": "ID of the doctor",
+            "examples": [
+              1
+            ]
+          },
+          "patient_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Patient Name",
+            "description": "Patient's full name",
+            "examples": [
+              "John Doe"
+            ]
+          },
+          "slot": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Slot",
+            "description": "Appointment slot timestamp in ISO format",
+            "examples": [
+              "2026-10-15T10:00:00"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "doctor_id",
+          "patient_name",
+          "slot"
+        ],
+        "title": "AppointmentCreate"
+      },
+      "AppointmentResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "doctor_id": {
+            "type": "integer",
+            "title": "Doctor Id"
+          },
+          "patient_name": {
+            "type": "string",
+            "title": "Patient Name"
+          },
+          "slot": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Slot"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "doctor_id",
+          "patient_name",
+          "slot"
+        ],
+        "title": "AppointmentResponse"
+      },
+      "DashboardStatsResponse": {
+        "properties": {
+          "total_doctors": {
+            "type": "integer",
+            "title": "Total Doctors"
+          },
+          "total_appointments": {
+            "type": "integer",
+            "title": "Total Appointments"
+          },
+          "upcoming_appointments": {
+            "type": "integer",
+            "title": "Upcoming Appointments"
+          },
+          "doctor_stats": {
+            "items": {
+              "$ref": "#/components/schemas/DoctorStats"
+            },
+            "type": "array",
+            "title": "Doctor Stats"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_doctors",
+          "total_appointments",
+          "upcoming_appointments",
+          "doctor_stats"
+        ],
+        "title": "DashboardStatsResponse"
+      },
+      "DoctorAvailabilityResponse": {
+        "properties": {
+          "doctor_id": {
+            "type": "integer",
+            "title": "Doctor Id"
+          },
+          "doctor_name": {
+            "type": "string",
+            "title": "Doctor Name"
+          },
+          "specialization": {
+            "type": "string",
+            "title": "Specialization"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "working_hours": {
+            "type": "string",
+            "title": "Working Hours"
+          },
+          "slots": {
+            "items": {
+              "$ref": "#/components/schemas/SlotAvailability"
+            },
+            "type": "array",
+            "title": "Slots"
+          }
+        },
+        "type": "object",
+        "required": [
+          "doctor_id",
+          "doctor_name",
+          "specialization",
+          "date",
+          "working_hours",
+          "slots"
+        ],
+        "title": "DoctorAvailabilityResponse"
+      },
+      "DoctorCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "description": "Doctor's full name",
+            "examples": [
+              "Dr. Alice Smith"
+            ]
+          },
+          "specialization": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Specialization",
+            "description": "Medical specialization",
+            "examples": [
+              "Cardiology"
+            ]
+          },
+          "start_hour": {
+            "type": "integer",
+            "maximum": 23.0,
+            "minimum": 0.0,
+            "title": "Start Hour",
+            "description": "Shift start hour (0-23)",
+            "examples": [
+              9
+            ]
+          },
+          "end_hour": {
+            "type": "integer",
+            "maximum": 24.0,
+            "minimum": 1.0,
+            "title": "End Hour",
+            "description": "Shift end hour (1-24)",
+            "examples": [
+              17
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "specialization",
+          "start_hour",
+          "end_hour"
+        ],
+        "title": "DoctorCreate"
+      },
+      "DoctorResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "description": "Doctor's full name",
+            "examples": [
+              "Dr. Alice Smith"
+            ]
+          },
+          "specialization": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Specialization",
+            "description": "Medical specialization",
+            "examples": [
+              "Cardiology"
+            ]
+          },
+          "start_hour": {
+            "type": "integer",
+            "maximum": 23.0,
+            "minimum": 0.0,
+            "title": "Start Hour",
+            "description": "Shift start hour (0-23)",
+            "examples": [
+              9
+            ]
+          },
+          "end_hour": {
+            "type": "integer",
+            "maximum": 24.0,
+            "minimum": 1.0,
+            "title": "End Hour",
+            "description": "Shift end hour (1-24)",
+            "examples": [
+              17
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "specialization",
+          "start_hour",
+          "end_hour",
+          "id"
+        ],
+        "title": "DoctorResponse"
+      },
+      "DoctorStats": {
+        "properties": {
+          "doctor_id": {
+            "type": "integer",
+            "title": "Doctor Id"
+          },
+          "doctor_name": {
+            "type": "string",
+            "title": "Doctor Name"
+          },
+          "specialization": {
+            "type": "string",
+            "title": "Specialization"
+          },
+          "appointment_count": {
+            "type": "integer",
+            "title": "Appointment Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "doctor_id",
+          "doctor_name",
+          "specialization",
+          "appointment_count"
+        ],
+        "title": "DoctorStats"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "MessageResponse": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "MessageResponse"
+      },
+      "SlotAvailability": {
+        "properties": {
+          "time": {
+            "type": "string",
+            "title": "Time",
+            "description": "Time string formatted as HH:00",
+            "examples": [
+              "10:00"
+            ]
+          },
+          "slot_datetime": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Slot Datetime",
+            "description": "Full datetime timestamp of slot"
+          },
+          "is_available": {
+            "type": "boolean",
+            "title": "Is Available",
+            "description": "True if slot is free for booking, False if booked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "time",
+          "slot_datetime",
+          "is_available"
+        ],
+        "title": "SlotAvailability"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
